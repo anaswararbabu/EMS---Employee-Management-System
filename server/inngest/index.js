@@ -116,19 +116,38 @@ const attendanceReminderCron = inngest.createFunction(
       })
 
       //Step 2: Get all active, non-deleted employees
-      const activeEmployees = await step.run("get-active-employees", async () => {
-        const employees = await Employee.find({
-          isDeleted: {$ne:true},
-          employmentStatus: "ACTIVE",
-        }).lean()
-        return employees.map((e)=>({_id: e._id.toString(),
-          firstName: e.firstName,
-          lastName: e.lastName,
-          email: e.email,
-          department: e.department
-        }))
-      })
+      const activeEmployees = await step.run(
+  "get-active-employees",
+  async () => {
+    // Temporarily inspect employee records
+    const allEmployees = await Employee.find({}).lean()
 
+    console.log(
+      "Employee records:",
+      allEmployees.map((e) => ({
+        id: e._id,
+        email: e.email,
+        isDeleted: e.isDeleted,
+        employmentStatus: e.employmentStatus,
+      }))
+    )
+
+    const employees = allEmployees.filter(
+      (e) =>
+        e.isDeleted !== true &&
+        e.employmentStatus === "ACTIVE"
+    )
+
+    return employees.map((e) => ({
+      _id: e._id.toString(),
+      firstName: e.firstName,
+      lastName: e.lastName,
+      email: e.email,
+      department: e.department,
+    }))
+  }
+)
+     
       //Step 3: Get employee IDs on approved leave today
       const onLeaveIds = await step.run("get-on-leave-ids", async () => {
         const leaves = await LeaveApplication.find({
