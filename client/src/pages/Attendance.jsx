@@ -4,6 +4,7 @@ import Loading from "../components/Loading"
 import CheckInButton from "../components/Attendance/CheckInButton"
 import AttendanceStat from "../components/Attendance/AttendanceStat"
 import AttendanceHistory from "../components/Attendance/AttendanceHistory"
+import api from "../api/axios"
 
 
 const Attendance = () => {
@@ -13,10 +14,16 @@ const Attendance = () => {
   const [isDeleted,setIsDeleted] = useState(false)
 
   const fetchData = useCallback(async () => {
-    setHistory(dummyAttendanceData)
-    setTimeout(()=>{
+    try {
+      const res = await api.get("/attendance")
+      const json = res.data;
+      setHistory(json.data || [])
+      if(json.employee?.isDeleted) setIsDeleted(true)
+    } catch (error) {
+       toast.error(error?.response?.data?.error || error?.message)
+    } finally{
       setLoading(false)
-    })
+    }
   },[])
 
   useEffect(()=>{

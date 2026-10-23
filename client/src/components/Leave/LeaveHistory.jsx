@@ -1,6 +1,9 @@
+import toast from 'react-hot-toast'
+import api from '../../api/axios'
 import { Check, Loader2, X } from 'lucide-react'
 import { useState } from 'react'
 import {format} from 'date-fns'
+
 
 const LeaveHistory = ({leaves, isAdmin, onUpdate}) => {
 
@@ -8,6 +11,18 @@ const LeaveHistory = ({leaves, isAdmin, onUpdate}) => {
 
     const handleStatusUpdate = async (id, status) => {
         setProcessing(id)
+        try {
+          console.log("Leave ID", id)
+          console.log("Status being sent", status)
+          await api.patch(`/leave/${id}`, {status})
+          toast.success(`Leave ${status.toLowerCase()} successfully`);
+          await onUpdate()
+        } catch (error) {
+            console.error("Leave status update error:", error.response?.data || error);
+            toast.error(error.response?.data?.error || error.message || "Failed to update leave status");
+        } finally{
+          setProcessing(null)
+        }
     }
 
   return (
@@ -70,15 +85,15 @@ const LeaveHistory = ({leaves, isAdmin, onUpdate}) => {
                                 {leave.status === "PENDING" && (
                                     <div className='flex justify-center gap-2'>
                                         <button className='p-1.5 rounded-md bg-emerald-50 text-emerald-600 hover:bg-emerald-100 transition-colors'
-                                            onClick={()=>handleStatusUpdate(leave._id, leave.id, "APPROVED")} disabled={!!processing}>
-                                            {processing === (leave._id || leave.id ? <Loader2 className='w-4 h-4 animate-spin'/>
-                                            : <Check className='w-4 h-4' />)}
+                                            onClick={()=>handleStatusUpdate(leave._id || leave.id, "APPROVED")} disabled={!!processing}>
+                                            {processing === (leave._id || leave.id) ? (<Loader2 className='w-4 h-4 animate-spin'/>)
+                                            : (<Check className='w-4 h-4' />)}
                                         </button>
 
                                         <button className='p-1.5 rounded-md bg-rose-50 text-rose-600 hover:bg-rose-100 transition-colors'
-                                            onClick={()=>handleStatusUpdate(leave._id, leave.id, "REJECTED")} disabled={!!processing}>
-                                            {processing === (leave._id || leave.id ? <Loader2 className='w-4 h-4 animate-spin'/>
-                                            : <X className='w-4 h-4' />)}
+                                            onClick={()=>handleStatusUpdate(leave._id || leave.id, "REJECTED")} disabled={!!processing}>
+                                            {processing === (leave._id || leave.id) ? (<Loader2 className='w-4 h-4 animate-spin'/>)
+                                            :( <X className='w-4 h-4' />)}
                                         </button>
                                     </div>
                                 )}

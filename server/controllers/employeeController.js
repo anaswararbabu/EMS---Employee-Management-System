@@ -1,4 +1,3 @@
-import { response } from "express";
 import Employee from "../models/Employee.js";
 import bcrypt from "bcrypt"
 import User from "../models/User.js";
@@ -11,7 +10,7 @@ export const getEmployees = async (req,res) => {
         const where = {};
         if( department ) where.department = department;
 
-        const employees = (await Employee.find(where)).toSorted({createdAt: -1})
+        const employees = await Employee.find(where).sort({createdAt: -1})
          .populate("userId","email role").lean();
 
          const result = employees.map((emp)=>({
@@ -22,7 +21,8 @@ export const getEmployees = async (req,res) => {
          }))
          return res.json(result)
     } catch (error) {
-        return response.status(500).json({error: "Failed to fetch employees"})
+        console.log("Get employees error",error)
+        return res.status(500).json({error: "Failed to fetch employees"})
     }
 }
 
@@ -56,7 +56,7 @@ export const createEmployee = async (req,res) => {
             basicSalary: Number(basicSalary) || 0,
             allowances: Number(allowances) || 0,
             deductions: Number(deductions) || 0,
-            joinDate : new Date(jponDate),
+            joinDate : new Date(joinDate),
             bio: bio || ""
         })
 

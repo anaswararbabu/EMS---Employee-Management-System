@@ -2,6 +2,8 @@ import { useState } from "react"
 import { useNavigate } from "react-router-dom"
 import { DEPARTMENTS } from "../assets/assets"
 import { Loader2Icon } from "lucide-react"
+import toast from "react-hot-toast"
+import api from "../api/axios"
 
 const EmployeeForm = ({initialData, onSuccess, onCancel}) => {
 
@@ -10,6 +12,24 @@ const EmployeeForm = ({initialData, onSuccess, onCancel}) => {
  const isEditMode = !!initialData;
  const handleSubmit = async (e) => {
     e.preventDefault()
+    setLoading(true)
+    const formData = new FormData(e.currentTarget);
+    if(isEditMode){
+        const pwd = formData.get("password")
+        if(!pwd) formData.delete("password")
+    }
+
+    try {
+        const employeeId = initialData?.id || initialData?._id
+        const url = isEditMode ? `/employees/${employeeId}` : "/employees";
+        const method = isEditMode ? "put" :"post";
+        await api[method](url, formData)
+        onSuccess ? onSuccess() : navigate("/employees")
+    } catch (error) {
+        toast.error(error.response?.data?.error || error.message)
+    } finally {
+        setLoading(false)
+    }
  }
 
   return (
@@ -70,7 +90,7 @@ const EmployeeForm = ({initialData, onSuccess, onCancel}) => {
                 </div>
                  <div>
                     <label className="block mb-2">Allowances</label>
-                    <input type="number " name="allowances" required min="0" step="0.01"
+                    <input type="number" name="allowances" required min="0" step="0.01"
                      defaultValue={initialData?.allowances || 0} />
                 </div>
                  <div>
@@ -98,7 +118,7 @@ const EmployeeForm = ({initialData, onSuccess, onCancel}) => {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 text-sm text-slate-700">
                 <div className="sm:col-span-2">
                     <label className="block mb-2">Work Email</label>
-                    <input type="email" name="email" required defaultValue={initialData?.emal} />
+                    <input type="email" name="email" required defaultValue={initialData?.email} />
                 </div>
                 {!isEditMode && (
                 <div>

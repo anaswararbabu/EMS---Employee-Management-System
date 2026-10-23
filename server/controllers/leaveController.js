@@ -9,9 +9,12 @@ export const createLeave = async (req,res) => {
     try {
         const session = req.session;
         const employee = await Employee.findOne({userId:session.userId})
-        if(!employee) return res.status(404).json({error : "Employee not Found"})
-        if(employee.isDeleted) return res.status(403).json({error: "Your account is deactivated. You cannot apply for leave"})
-        
+        if(!employee) {
+            return res.status(404).json({error : "Employee not Found"})
+        }
+        if(employee.isDeleted) {
+            return res.status(403).json({error: "Your account is deactivated. You cannot apply for leave"})
+        }
         const  { type, startDate, endDate, reason } = req.body;
 
         if(!type || !startDate || !endDate || !reason){
@@ -20,6 +23,7 @@ export const createLeave = async (req,res) => {
 
         const today = new Date();
         today.setHours(0,0,0,0);
+
         if(new Date(startDate) <= today || new Date(endDate) <= today){
             return res.status(400).json({error : "Leave dates must be in the future"})
         }
@@ -28,7 +32,7 @@ export const createLeave = async (req,res) => {
             return res.status(400).json({error :"End date cannot be before start date"})
         }
 
-        const laeve = await LeaveApplication({
+        const leave = new LeaveApplication({
             employeeId: employee._id,
             type,
             startDate: new Date(startDate),
@@ -36,13 +40,14 @@ export const createLeave = async (req,res) => {
             reason,
             status:"PENDING"
         })
+        await leave.save()
 
         await inngest.send({
             name:"leave/pending",
-            data: {leaveApplicationId: leave._id}
+            data: {leaveApplicationId: leave._id.toString()}
         })
 
-        return res.json({ success: true, date:leave})
+        return res.status(201).json({ success: true, date:leave})
         } catch (error) {
             return res.status(500).json({error:"Failed"})
     }
@@ -52,12 +57,14 @@ export const createLeave = async (req,res) => {
 //GET /api/leaves
 export const getLeaves = async (req,res) => {
     try {
-       const session = rrq.session;
+       const session = req.session;
        const isAdmin = session.role === "ADMIN" 
        if(isAdmin) {
         const status = req.query.status;
         const where = status ? {status} : {};
         const leaves = await LeaveApplication.find(where).populate("employeeId").sort({ createdAt: -1})
+        console.log("Admin role:",session.role)
+        console.log("Leaves found",leaves.length)
         const data = leaves.map((l)=>{
             const obj = l.toObject();
             return {
@@ -72,7 +79,9 @@ export const getLeaves = async (req,res) => {
         const employee = await Employee.findOne({
             userId: session.userId,
         }).lean();
-        if(!employee) return res.status(404).json({error :"Not Found"})
+        if(!employee) {
+            return res.status(404).json({error :"Not Found"})
+        }
         const leaves = await LeaveApplication.find({
             employeeId: employee._id
          }).sort({ createdAt : -1})
@@ -82,7 +91,11 @@ export const getLeaves = async (req,res) => {
          })
        }
     } catch (error) {
-        return res.status(500).json({error:"Failed"})
+         console.error("Get leaves error:", error);
+         return res.status(500).json({
+            error: "Failed to fetch leaves",
+            details: error.message
+    });
     }
 }
 
@@ -94,9 +107,20 @@ export const updateLeaveStatus = async (req,res) => {
         if (!["APPROVED","REJECTED","PENDING"].includes(status)){
             return res.status(400).json({error : "Invalid Status"})
         }
-        const leave = await LeaveApplication.findByIdAndUpdate(req.params.id, {status},{returnDocument: "after"})
-        return res.json({success:CSSPositionTryRule, data: leave})
+        const leave = await LeaveApplication.findByIdAndUpdate(req.params.id, {status},
+            {returnDocument: "after",runValidators: true})
+
+        if(!leave){
+            return res.status(404).json({error:"Leave application not found"})
+        }
+
+        return res.json({
+            success:true,
+            data:leave
+        })
+        
     } catch (error) {
+        console.error("Update leave status error")
         return res.status(500).json({error:"Failed"})
     }
 }
