@@ -3,6 +3,7 @@ import { dummyEmployeeData , DEPARTMENTS} from "../assets/assets"
 import { Plus, Search, X } from "lucide-react"
 import EmployeeCard from "../components/EmployeeCard"
 import EmployeeForm from "../components/EmployeeForm"
+import api from "../api/axios"
 
 const Employees = () => {
 
@@ -14,11 +15,15 @@ const Employees = () => {
   const [showCreateMoodal,setShowCreateModal] = useState(false)
 
   const fetchEmployees = useCallback(async () => {
-    setLoading(true)
-    setEmployees(dummyEmployeeData.filter((emp) => (selectDept ? emp.department === selectDept : emp)))
-    setTimeout(() => {
+    try {
+      const url = selectDept ? `/employees?department=${selectDept}` : "/employees"
+      const res = await api.get(url)
+      setEmployees(res.data)
+    } catch (error) {
+      console.error("Failed to fetch employees")
+    }finally{
       setLoading(false)
-    }, 1000);
+    }
   },[selectDept])
 
   useEffect(()=>{
@@ -43,7 +48,7 @@ const Employees = () => {
 
       {/*--------search bar-------- */}
       <div className="flex flex-col sm:flex-row gap-3 mb-6">
-        <div className="realtive flex-1">
+        <div className="relative flex-1">
           <Search className="absolute left-3.5 top-1/2 transform -translate-y-1/2 text-slate-400 w-4 h-4 "/>
           <input placeholder="Search Employees....." className="w-full pl-10" onChange={(e)=>setSearch(e.target.value)}
            value={search}/>

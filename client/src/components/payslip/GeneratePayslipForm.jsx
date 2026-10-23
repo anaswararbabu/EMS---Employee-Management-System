@@ -1,5 +1,7 @@
+import api from '../../api/axios'
 import { Loader2, Plus, X } from 'lucide-react'
 import React, { useState } from 'react'
+import toast from 'react-hot-toast'
 
 const GeneratePayslipForm = ({employees,onSuccess}) => {
 
@@ -14,6 +16,17 @@ const GeneratePayslipForm = ({employees,onSuccess}) => {
 
     const handleSubmit = async (e) => {
         e.preventDefault()
+        setLoading(true)
+        const formData = new FormData(e.currentTarget);
+        const data = Object.fromEntries(formData.entries())
+        try {
+            await api.post('/payslips', data)
+            setIsOpen(false)
+            onSuccess()
+        } catch (err) {
+            toast.error(err.response?.data?.error || err?.message)
+        }
+        setLoading(false)
     }
 
   return (
@@ -31,7 +44,8 @@ const GeneratePayslipForm = ({employees,onSuccess}) => {
                     <label className='block text-sm font-medium text-slate-700 mb-2'>Employee</label>
                     <select name="employeeId" required>
                         {employees.map((e)=>(
-                            <option key={e.id} value={e.id}>{e.firstName} {e.lastName} {e.position}</option>
+                            <option key={e.id || e._id} value={e.id || e._id}>{e.firstName} {e.lastName}
+                             {e.position}</option>
                         ))}
                     </select>
                 </div>
@@ -39,7 +53,7 @@ const GeneratePayslipForm = ({employees,onSuccess}) => {
                 <div className='grid grid-cols-2 gap-4'>
                     <div>
                         <label className='block text-sm font-medium text-slate-700 mb-2'>Month</label>
-                        <select name="month" >
+                        <select name="month" required >
                             {Array.from({length :12}, (_,i)=> i + 1).map((m)=>(
                                <option key={m} value={m}>
                                     {m}
@@ -53,7 +67,7 @@ const GeneratePayslipForm = ({employees,onSuccess}) => {
                 <div className='grid grid-cols-2 gap-4'>
                     <div>
                         <label className='block text-sm font-medium text-slate-700 mb-2'>Year</label>
-                       <input type="number" name='year' defaultValue={new Date().getFullYear()} />
+                       <input type="number" name='year' required defaultValue={new Date().getFullYear()} />
                     </div>
                 </div>
 
