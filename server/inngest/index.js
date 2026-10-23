@@ -118,7 +118,7 @@ const attendanceReminderCron = inngest.createFunction(
       //Step 2: Get all active, non-deleted employees
       const activeEmployees = await step.run("get-active-employees", async () => {
         const employees = await Employee.find({
-          isDeleted: false,
+          isDeleted: {$ne:true},
           employmentStatus: "ACTIVE",
         }).lean()
         return employees.map((e)=>({_id: e._id.toString(),
